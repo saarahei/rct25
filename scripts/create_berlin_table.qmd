@@ -55,14 +55,17 @@ ggplot(
 	dta, 
 	aes(x = year, y = total_assets/1000, group = my_postcode, color=my_postcode)
 ) + 
-	stat_summary(fun.data = mean_cl_normal, geom = "pointrange") +
+	stat_summary(
+		fun.data = mean_cl_normal, geom = "pointrange",
+		size = 0.3, position = position_dodge(0.5)
+	) +
   scale_color_brewer(
   	palette = "Set1"
   ) +
 	scale_y_log10() +
 	labs(x = "", y = "Total Assets [TEUR]", color = "") +
 	theme_minimal() +
-		theme(legend.position = "none")
+		theme(legend.position = "none", panel.grid.minor = element_blank())
 
 ```
 
@@ -73,14 +76,17 @@ ggplot(
 	dta, 
 	aes(x = year, y = equity_ratio, group = my_postcode, color=my_postcode)
 ) + 
-	stat_summary(fun.data = mean_cl_normal, geom = "pointrange") +
+	stat_summary(
+		fun.data = mean_cl_normal, geom = "pointrange", 
+		size = 0.3, position = position_dodge(0.5)
+	) +
   scale_color_brewer(
   	palette = "Set1"
   ) +
 	scale_y_continuous(labels = scales::percent) +
 	labs(x = "", y = "Equity Ratio", color = "") +
 	theme_minimal() +
-		theme(legend.position = "bottom")
+		theme(legend.position = "bottom", panel.grid.minor = element_blank())
 
 ```
 This figure compares total assets and equity ratios of Berlin firms registered under postcode `r as.character(POSTCODE)` (`r format(n_unique_firms_my_postcode, big.mark = ",")` unique firms) with the remaining population of Berlin firms (`r format(n_unique_firms_rest_of_berlin, big.mark = ",")` unique firms). `r notes_sample` 95%-Confidence intervals are plotted along with the means. Code for reproducing this figure is available at: https://github.com/joachim-gassen/rct25.

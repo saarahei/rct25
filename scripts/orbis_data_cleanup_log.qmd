@@ -86,7 +86,7 @@ ggplot(nobs_per_year_raw, aes(x = year, y = nobs)) +
 
 ### Set time period and display raw descriptive statistics
 
-Give the time structure it makes sense to limit the sample to the period 2006 (first year with reasonably stable coverage) to 2021 (last year with reasonably stable coverage). Let's look at the descriptive statistics of our data next.
+Given the time structure it makes sense to limit the sample to the period 2006 (first year with reasonably stable coverage) to 2021 (last year with reasonably stable coverage). Let's look at the descriptive statistics of our data next.
 
 ```{r RawDescStat}
 raw_smp <- raw_smp %>% filter(year %in% 2006:2021)
@@ -98,7 +98,7 @@ datasummary(
 )
 ```
 
-Total assets seems reasonably well-behaved. It is strictly positive but highly left-skewed. That means that there are many small firms in the data but some very large, exactly like you would expect.
+Total assets seems reasonably well-behaved. It is strictly positive but highly right-skewed. That means that there are many small firms in the data but some very large, exactly like you would expect.
 
 Equity contains negative values but this also is to be expected. Firms can generate losses over time that can grow to amounts that exceed equity, yielding equity values that are negative. While this is an indicator of financial distress it is not per se a reason why a firm should cease to exist. 
 
