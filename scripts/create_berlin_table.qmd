@@ -1,0 +1,135 @@
+---
+format: pdf
+editor: visual
+execute:
+  echo: false
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(fixest)
+library(modelsummary)
+library(gt)
+library(glue)
+library(kableExtra)
+```
+
+```{r data-load}
+POSTCODE <- 10437
+
+dta <- readRDS("data/generated/berlin_sample.rds") %>%
+	mutate(my_postcode = ifelse(
+		postcode == POSTCODE, glue("Postcode: {POSTCODE}"), 
+		"Rest of Berlin"
+	))
+
+n_unique_firms <- n_distinct(dta$bvdid)
+n_unique_firms_my_postcode <- length(unique(
+	dta$bvdid[dta$postcode == POSTCODE]
+))
+n_unique_firms_rest_of_berlin <- length(unique(
+	dta$bvdid[dta$postcode != POSTCODE]
+))
+
+notes_sample <- glue(
+	"Data are obtained from Orbis. ",
+	"The sample covers the fiscal years {min(dta$year)} to ", 
+	"{max(dta$year)}. It is limited to observations with postcodes ",
+	"(*POSTCODE*), total assets (*TOAS*), and total equity (*SHFD*) ", 
+	"available. In addition, observations are required to have ", 
+	"total assets matching their sums of total equity and liabilities (*TSHF*). ",
+	"Finally, observations with total equity larger than total assets are excluded. ",
+	"The equity ratio is calculated by dividing total equity by total assets. ",
+	"If total equity is negative it is subtracted from ",
+	"total assets prior to the division ",
+	"so that *equity ratio* is bounded by -1 and 1."
+)
+```
+
+### Figure 1: Size and Equity Ratio over Time
+
+#### Panel A: Size (Total Assets)
+
+```{r Figure1PanelA, fig.align = "center", fig.height=2}
+ggplot(
+	dta, 
+	aes(x = year, y = total_assets/1000, group = my_postcode, color=my_postcode)
+) + 
+	stat_summary(fun.data = mean_cl_normal, geom = "pointrange") +
+  scale_color_brewer(
+  	palette = "Set1"
+  ) +
+	scale_y_log10() +
+	labs(x = "", y = "Total Assets [TEUR]", color = "") +
+	theme_minimal() +
+		theme(legend.position = "none")
+
+```
+
+#### Panel B: Equity Ratio
+
+```{r Figure1PanelB, fig.align = "center", fig.height=2.5}
+ggplot(
+	dta, 
+	aes(x = year, y = equity_ratio, group = my_postcode, color=my_postcode)
+) + 
+	stat_summary(fun.data = mean_cl_normal, geom = "pointrange") +
+  scale_color_brewer(
+  	palette = "Set1"
+  ) +
+	scale_y_continuous(labels = scales::percent) +
+	labs(x = "", y = "Equity Ratio", color = "") +
+	theme_minimal() +
+		theme(legend.position = "bottom")
+
+```
+This figure compares total assets and equity ratios of Berlin firms registered under postcode `r as.character(POSTCODE)` (`r format(n_unique_firms_my_postcode, big.mark = ",")` unique firms) with the remaining population of Berlin firms (`r format(n_unique_firms_rest_of_berlin, big.mark = ",")` unique firms). `r notes_sample` 95%-Confidence intervals are plotted along with the means. Code for reproducing this figure is available at: https://github.com/joachim-gassen/rct25.
+
+
+### Table 1: Size and Equity Ratio by Postcode
+
+```{r, Table1}
+#| tbl-pos: H
+
+myfmt <- function(x) {
+	lapply(x, function (x) {
+		if (x > 1) return(format(round(x), big.mark = ","))
+		if (round(x, 3) == 0) return ("<0.001") 
+		return(sprintf("%.3f", x))
+	})
+}
+
+mod_ta <- feols(log_total_assets ~ my_postcode | year, cluster = "bvdid", data = dta)
+mod_eqr <- feols(equity_ratio ~ my_postcode | year, cluster = "bvdid", data = dta)
+tests <- tibble(
+	`p-Value` = c(mod_ta$coeftable[1,4], mod_eqr$coeftable[1,4])
+)
+
+df <- dta %>%
+	mutate(
+		`Total Assets` = total_assets/1000,
+		my_postcode = ifelse(
+			postcode == POSTCODE,
+			glue(
+				"Postcode: {POSTCODE} ", 
+				"(N={myfmt(length(dta$bvdid[dta$postcode == POSTCODE]))})"
+			), 
+			glue(
+				"Rest of Berlin ",
+				"(N={myfmt(length(dta$bvdid[dta$postcode != POSTCODE]))})"
+			)
+		)
+	) %>%
+	select(
+		my_postcode,
+		`Total Assets`, `Equity Ratio` = equity_ratio
+	)
+
+datasummary(
+	(`Total Assets` + `Equity Ratio`)~my_postcode*(Mean + SD + Median),
+	df, fmt = myfmt, add_columns = tests
+) %>%  kable_styling(latex_options = c("HOLD_position"))
+
+```
+
+This table tests for differences in total assets and equity ratios betwwen firms registered in Berlin under postcode `r as.character(POSTCODE)` (`r format(n_unique_firms_my_postcode, big.mark = ",")` unique firms) and the remaining Berlin population (`r format(n_unique_firms_rest_of_berlin, big.mark = ",")` unique firms). `r notes_sample` Total assets are measured in thousands of Euros. P-values are based on OLS regressions of both variables on a postcode indicator and a set of fiscal year fixed effects. Standard errors are clustered at the firm level. For the total assets model, the dependent variable is log-transformed to address skewness prior to estimation. Code for reproducing this table is available at: https://github.com/joachim-gassen/rct25.

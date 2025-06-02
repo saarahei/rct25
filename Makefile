@@ -12,7 +12,8 @@ ACZ2018_FIGURE := output/acz2018_figure.pdf
 ACZ2018_DID_FIN := output/acz2018_did_fin.docx
 ACZ2018_DID_MKT := output/acz2018_did_mkt.docx
 ACZ2018_TABLE5 := output/acz2018_table5.pdf
-ORBIS_PANEL_BERLIN := data/generated/orbis_panel_berlin.rds
+
+BERLIN_TABLE := output/berlin_table.pdf
 DID_SIMULATION := output/did_simulation.pdf
 
 # Data Targets
@@ -32,12 +33,17 @@ ORBIS_DATA := data/pulled/orbis_ind_g_fins_eur_l_de.parquet \
 
 ORBIS_PANEL_DE := data/generated/orbis_panel_de.rds
 
+ORBIS_PANEL_BERLIN := data/generated/orbis_panel_berlin.rds
+
+BERLIN_SAMPLE := data/generated/berlin_sample.rds
+
 DID_SIM_RESULTS := data/generated/did_sim_results.rds
+
 
 # Materials needed for main targets
 
 ALL_TARGETS := $(ACZ2018_FIGURE) $(ACZ2018_DID_FIN) $(ACZ2018_DID_MKT) \
-	$(ACZ2018_TABLE5) $(ORBIS_PANEL_BERLIN) $(DID_SIMULATION)
+	$(ACZ2018_TABLE5) $(BERLIN_TABLE) $(DID_SIMULATION)
 
 
 # Phony targets
@@ -70,8 +76,12 @@ $(ORBIS_PANEL_DE): $(ORBIS_DATA) code/create_orbis_panel_de.R
 $(ORBIS_PANEL_BERLIN): $(ORBIS_PANEL_DE) code/create_orbis_panel_berlin.R
 	$(RSCRIPT) code/create_orbis_panel_berlin.R
 	
+$(BERLIN_SAMPLE): $(ORBIS_PANEL_BERLIN) code/cleanup_orbis_panel_berlin.R
+	$(RSCRIPT) code/cleanup_orbis_panel_berlin.R
+
 $(DID_SIM_RESULTS): code/did_sim_utils.R code/did_sim_create_results.R
 	$(RSCRIPT) code/did_sim_create_results.R
+
 	
 ## Output Recipes
 	
@@ -85,6 +95,8 @@ $(ACZ2018_DID_FIN) $(ACZ2018_DID_MKT): data/external/acz2018.dta \
 $(ACZ2018_TABLE5): data/external/acz2018.dta scripts/create_acz2018_table5.qmd
 	quarto render scripts/create_acz2018_table5.qmd -o acz2018_table5.pdf --quiet
 
+$(BERLIN_TABLE): $(BERLIN_SAMPLE) scripts/create_berlin_table.qmd
+	quarto render scripts/create_berlin_table.qmd -o berlin_table.pdf --quiet 
+	
 $(DID_SIMULATION): $(DID_SIM_RESULTS) scripts/did_simulation.qmd
 	quarto render scripts/did_simulation.qmd -o did_simulation.pdf --quiet
- 

@@ -1,0 +1,185 @@
+---
+title: "Data cleanup log for Berlin Orbis data"
+format: html
+execute:
+  warnings: false
+  message: false
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(glue)
+library(haven)
+library(fixest)
+library(modelsummary)
+library(gt)
+```
+
+
+### Read Orbis Berlin data and verify its structure
+
+A typical data cleanup workflow starts with reading the data and verifying its structure. 
+
+```{r ReadData}
+dta <- readRDS("data/generated/orbis_panel_berlin.rds")
+
+# The following checks whether that our data is "well-behaved"
+
+# Does it contain missing firm ID entries?
+nobs_bvd_id_missing <- sum(is.na(dta$bvdid))
+if (nobs_bvd_id_missing > 0) stop(
+	glue(
+		"Data contains {nobs_bvd_id_mssing} obsverations with missing bvd_id. ",
+		"Check your data."
+	)
+)
+
+# Does it contain missing fiscal year entries?
+year_missing <- sum(is.na(dta$year))
+if (year_missing > 0) stop(
+	glue(
+		"Data contains {year_mssing} obsverations with a missing fiscal year. ", 
+		"Check your data."
+	)
+)
+
+# Is it organized at the firm fiscal year level?
+dups <- dta %>%
+	group_by(bvdid, year) %>%
+	filter(n() > 1)
+
+if (nrow(dups) > 0) stop(
+	glue(
+		"Found {nrow(dups)} duplicate obsverations at the firm/year level.", 
+		"Check your data."
+	)
+) 
+```
+
+OK. The data are defined by firm (`bvdid`) and fiscal year (`year`). Both indicators are present for all observations and the data contain no duplicates.
+
+### Define raw sample and display its structure
+
+A next step is to set sample screens (by required data items) to identify a 'raw' sample and to define our measures that we want to use in our downstream analyis. Then we can have a peak of the sample structure (frequency of observations over time).
+
+```{r ConstructRawSample}
+# We require our observation to have non-missing data on 
+# postcode as well as for equity and total assets
+raw_smp <- dta %>% 
+	filter(!is.na(postcode), !is.na(shfd), !is.na(toas)) %>%
+	mutate(
+		name = name_native,
+		equity = shfd,
+		total_assets = toas,
+		eqr = shfd/toas
+	) %>%
+	select(bvdid, year, name, postcode, equity, total_assets, eqr)
+
+nobs_per_year_raw <- raw_smp %>% 
+	group_by(year) %>%
+	summarise(nobs = n(), .groups = "drop") %>%
+	arrange(year)
+
+ggplot(nobs_per_year_raw, aes(x = year, y = nobs)) +
+	geom_point() + geom_line() + theme_minimal()
+```
+
+### Set time period and display raw descriptive statistics
+
+Give the time structure it makes sense to limit the sample to the period 2006 (first year with reasonably stable coverage) to 2021 (last year with reasonably stable coverage). Let's look at the descriptive statistics of our data next.
+
+```{r RawDescStat}
+raw_smp <- raw_smp %>% filter(year %in% 2006:2021)
+
+datasummary(
+	total_assets + equity + eqr ~ 
+		N + Min + P25 + Median + P75 + Max + Mean + SD,
+	raw_smp
+)
+```
+
+Total assets seems reasonably well-behaved. It is strictly positive but highly left-skewed. That means that there are many small firms in the data but some very large, exactly like you would expect.
+
+Equity contains negative values but this also is to be expected. Firms can generate losses over time that can grow to amounts that exceed equity, yielding equity values that are negative. While this is an indicator of financial distress it is not per se a reason why a firm should cease to exist. 
+
+What is more puzzling is the distribution of the equity ratio. Depending on the exact definition of total assets, it should be distrubuted between -1 (a firm has only liabilities and no assets) and 1 (a firm has assets but no liabilies). Our data does not seem to be bounded by this. Time to take a look at the data definitions and to do some deep diving.
+
+### Check the construction of Orbis' TOAS compared to TSHF
+
+Here is a clipping from the relevant definitions contained in the Orbis documentation (p. 1951f.)
+
+| Variable Memonic | Variable Name | Calculation | Description |
+| --- | --- | --- | --- |
+| FIAS | Non-current assets | IFAS+TFAS+OFAS | Total amount of non current assets (after depreciation) (sum of Intangible assets, Tangible Fixed assets and Other non-current assets) | 
+| OCAS | Other current assets | | All other current assets such as receivables from other sources (taxes, group companies and related parties), short-term investments and Cash at bank and in hand |
+| TOAS | Total assets | FIAS+CUAS | Sum of all Non-Current assets and Current assets |
+| SHFD | Shareholders funds | CAPI+OSFD | Total equity (sum of Capital and Other shareholders funds) |
+| CAPI | Capital | | Of which Issued Share capital (Authorized capital) |
+| OSFD | Other shareholders funds | | All Shareholders funds not linked with the Issued capital such as Reserve capital, Undistributed profit, includes Minority interests |
+| TSHF | Total shareh. funds & liab. | SHFD+NCLI+CULI | Total Shareholders funds and liabilities (sum of Shareholders funds, Non current liabilities and Current liabilities) | 
+
+Based on the balance sheet identity (equity = assets - liabilities) this seems as if TOAS and TSHF should have identical values with TOAS reporting only the sum of current and non-current assets and and TSHF reporting liabilities + equity, meaning that negative equity reduces TSHF if present. Let's check the first part of our conjecture.
+
+```{r BalanceEqViolated1}
+odd_dta1 <- dta %>% filter(toas != tshf)
+```
+
+It seems as if the data mostly omplies with this. There are, however, `r nrow(odd_dta1)` cases where TOAS and TSHF are not equal. It might be well worth investigating this further but to ensure data consistency for our sample, I decide to include this as an additional data screening step and to adjust the equity ratio so that it should be distributed within $[-1, 1]$:
+
+$EQR = \frac{Equity}{\textit{Total Assets} - Equity^-}$
+
+$Equity^-$ is defined to be zero if equity is postive and equal to equity if equity is negative. Now, let's take a look at those cases where equity seems to be larger than total assets.
+
+```{r BalanceEqViolated2}
+odd_dta2 <- dta %>% filter(shfd > toas)
+```
+
+These are `r nrow(odd_dta2)` cases. I have no real explanation for this besides data inconsistencies (remember: equity = assets - liabilities, with both assets and libilities >= 0). Again, I include a data screen to ensure data consistency.
+
+Now, I can prepare the final sample that can be used for downstream analysis.
+
+```{r DefineSample}
+smp <- dta %>% 
+	filter(
+		!is.na(shfd), !is.na(toas), 
+		toas == tshf, toas >= shfd,
+		year %in% 2006:2021
+	) %>%
+	mutate(
+		name = name_native,
+		equity = shfd,
+		total_assets = toas,
+		log_total_assets = log(total_assets),
+		equity_ratio = shfd/(toas - ifelse(shfd < 0, shfd, 0)) 
+	) %>%
+	select(
+		bvdid, year, name, postcode, equity, total_assets,
+		log_total_assets, equity_ratio
+	)
+
+nobs_per_year <- smp %>% 
+	group_by(year) %>%
+	summarise(nobs = n(), .groups = "drop") %>%
+	arrange(year)
+
+ggplot(nobs_per_year, aes(x = year, y = nobs)) +
+	geom_point() + geom_line() + theme_minimal()
+
+datasummary(
+	log_total_assets + equity_ratio ~ 
+		N + Min + P25 + Median + P75 + Max + Mean + SD,
+	smp
+)
+```
+
+### A final look at the distribution of the variables
+
+This looks good. A final quick check on the distriubution of the variables to see whether our sample is ready for the analysis.
+
+```{r Distributions}
+ggplot(smp, aes(x = log_total_assets)) + geom_histogram() + theme_minimal()
+
+ggplot(smp, aes(x = equity_ratio)) + geom_histogram() + theme_minimal()
+```
+
+We are ready to roll! Now, I can copy the essential parts of this script into the code file `code/cleanup_orbis_panel_berlin.R`. This code file (found in the repo) prepares a cleaned sample and stores it in `data/generated` for downstream analyses.
