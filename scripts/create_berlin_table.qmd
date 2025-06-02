@@ -95,8 +95,6 @@ This figure compares total assets and equity ratios of Berlin firms registered u
 ### Table 1: Size and Equity Ratio by Postcode
 
 ```{r, Table1}
-#| tbl-pos: H
-
 myfmt <- function(x) {
 	lapply(x, function (x) {
 		if (x > 1) return(format(round(x), big.mark = ","))
