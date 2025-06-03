@@ -129,11 +129,15 @@ df <- dta %>%
 		`Total Assets`, `Equity Ratio` = equity_ratio
 	)
 
+# datasummary by default uses the latex package siunitx 
+# to wrap numbers and this renders \num{3,145} as 3.145 by 
+# default. The option below diables the use of the siunitx package
+# as our numbers already come in a pre-defined format.
+options(modelsummary_format_numeric_latex = "plain")
 datasummary(
 	(`Total Assets` + `Equity Ratio`)~my_postcode*(Mean + SD + Median),
 	df, fmt = myfmt, add_columns = tests
 ) %>%  kable_styling(latex_options = c("HOLD_position"))
-
 ```
 
 This table tests for differences in total assets and equity ratios betwwen firms registered in Berlin under postcode `r as.character(POSTCODE)` (`r format(n_unique_firms_my_postcode, big.mark = ",")` unique firms) and the remaining Berlin population (`r format(n_unique_firms_rest_of_berlin, big.mark = ",")` unique firms). `r notes_sample` Total assets are measured in thousands of Euros. P-values are based on OLS regressions of both variables on a postcode indicator and a set of fiscal year fixed effects. Standard errors are clustered at the firm level. For the total assets model, the dependent variable is log-transformed to address skewness prior to estimation. Code for reproducing this table is available at: https://github.com/joachim-gassen/rct25.
