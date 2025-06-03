@@ -13,6 +13,8 @@ RUN install2.r --error --skipinstalled -n -1 \
         duckdb \
         hms \
         arrow \
+        Hmisc \
+        kableExtra \
     && rm -rf /tmp/downloaded_packages
 
 # vscDebugger (needed for VS code R debugger extension is not on CRAN)
