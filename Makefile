@@ -52,13 +52,18 @@ ALL_TARGETS := $(ACZ2018_FIGURE) $(ACZ2018_DID_FIN) $(ACZ2018_DID_MKT) \
 
 all: $(ALL_TARGETS)
 
+# I set this as a phony target so that it needs to be run explicitly
+berlin_orbis_data: $(ORBIS_DATA) $(ORBIS_PANEL_DE) code/create_orbis_panel_berlin.R
+	$(RSCRIPT) code/create_orbis_panel_berlin.R
+
 clean:
 	rm -f $(ALL_TARGETS)
-	rm -f data/generated/*
+	rm -f $(BERLIN_SAMPLE) $(DID_SIM_RESULTS)
 	rm -f data/temp/*
 	rm -f *.log
 
 dist-clean: clean
+	rm -f data/generated/*
 	rm -f data/precomputed/*
 	rm -f data/pulled/*
 
@@ -73,9 +78,9 @@ $(ORBIS_DATA): config.env code/pull_wrds_data.R
 $(ORBIS_PANEL_DE): $(ORBIS_DATA) code/create_orbis_panel_de.R
 	$(RSCRIPT) code/create_orbis_panel_de.R
 
-$(ORBIS_PANEL_BERLIN): $(ORBIS_PANEL_DE) code/create_orbis_panel_berlin.R
-	$(RSCRIPT) code/create_orbis_panel_berlin.R
-	
+# $(ORBIS_PANEL_BERLIN) needs to be run explictly, if not uploaded from Moodle
+# by calling 'make berlin_orbis_data'
+
 $(BERLIN_SAMPLE): $(ORBIS_PANEL_BERLIN) code/cleanup_orbis_panel_berlin.R
 	$(RSCRIPT) code/cleanup_orbis_panel_berlin.R
 

@@ -47,7 +47,7 @@ avgs$period <- factor(
 	labels = c("Pre training", "~12 months after training")
 )
 
-ggplot(avgs, aes(x = period, group = tment, color = tment)) + 
+pl <- ggplot(avgs, aes(x = period, group = tment, color = tment)) + 
 	geom_pointrange(
 		aes(y = mn_profits, ymin = lb_profits, ymax = ub_profits), 
 		position = position_dodge(width = 0.1)
@@ -66,4 +66,4 @@ ggplot(avgs, aes(x = period, group = tment, color = tment)) +
 		panel.grid.major.x = element_blank()
 	)
 
-ggsave("output/acz2018_figure.pdf", width = 9, height = 6)
+ggsave("output/acz2018_figure.pdf", pl, width = 9, height = 6)
