@@ -62,7 +62,6 @@ ggplot(
   scale_color_brewer(
   	palette = "Set1"
   ) +
-	scale_y_log10() +
 	labs(x = "", y = "Total Assets [TEUR]", color = "") +
 	theme_minimal() +
 		theme(legend.position = "none", panel.grid.minor = element_blank())
