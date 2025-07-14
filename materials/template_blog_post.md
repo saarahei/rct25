@@ -24,5 +24,4 @@ If you want to refer to non-academic content, you can include [direct links](htt
 
 After the main text of your blog post, you need to provide all references that you have used. Please use the format below and always provide the DOI URL and reference for the most recent published versions.
 
-[Allcot, Hunt, and Mathew Gentzkow (2017): Social Media and Fake News in the 2016
-Election. Journal of Economic Perspectives, Volume 31, Issue 2, Pages 211–236.](https://doi.org/10.1257/jep.31.2.211)
+[Allcot, Hunt, and Mathew Gentzkow (2017): Social Media and Fake News in the 2016 Election. Journal of Economic Perspectives, Volume 31, Issue 2, Pages 211–236.](https://doi.org/10.1257/jep.31.2.211)
