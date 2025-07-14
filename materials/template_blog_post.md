@@ -18,10 +18,10 @@ Use paragraphs, created by empty lines, to structure your post. As discussed, yo
 
 ## Another sub-heading (also not required, but if you have one you need at least two)
 
-In your text, you can refer to academic references either in text, like: Allcot and Gentzkow (2017) discuss the role of social media in spreading disinformation related to the 2016 U.S. election. Alternatively, you can provide references in brackets (Allcot and Gentzkow, 2017).
+In your text, you can refer to academic references either in text, like: Allcott and Gentzkow (2017) discuss the role of social media in spreading disinformation related to the 2016 U.S. election. Alternatively, you can provide references in brackets (Allcott and Gentzkow, 2017).
 
 If you want to refer to non-academic content, you can include [direct links](https://www.nytimes.com/spotlight/misinformation) in the text.
 
 After the main text of your blog post, you need to provide all references that you have used. Please use the format below and always provide the DOI URL and reference for the most recent published versions.
 
-[Allcot, Hunt, and Mathew Gentzkow (2017): Social Media and Fake News in the 2016 Election. Journal of Economic Perspectives, Volume 31, Issue 2, Pages 211–236.](https://doi.org/10.1257/jep.31.2.211)
+[Allcott, Hunt, and Matthew Gentzkow (2017): Social Media and Fake News in the 2016 Election. Journal of Economic Perspectives, Volume 31, Issue 2, Pages 211–236.](https://doi.org/10.1257/jep.31.2.211)
